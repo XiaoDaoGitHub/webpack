@@ -1,4 +1,3 @@
-import a from './print.js'
 import './css/index.css'
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -15,5 +14,5 @@ class Test extends React.Component {
 
 ReactDOM.render(
     <Test />,
-    document.querySelector('#root')
+    document.getElementById('root')
 )

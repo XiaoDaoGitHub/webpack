@@ -9,9 +9,14 @@ const webpack = require('webpack')
 const CleanWebpackPlugin = require('clean-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
+const HtmlWebpackIncludeAssetsPlugin = require('html-webpack-include-assets-plugin');
+const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin')
+const path = require('path')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+
 const devMode = process.env.NODE_ENV !== 'production'
 //  打印webpack各个部分的运行速度，以此来确定优化点
-const smp = new SpeedMeasurePlugin()
+// const smp = new SpeedMeasurePlugin()
 
 
 const config = merge(common, {
@@ -34,6 +39,7 @@ const config = merge(common, {
         // 进行一些预编译，加快速度
         new webpack.optimize.ModuleConcatenationPlugin(),
 
+
         //  用来提取js中的css到单独文件中，该插件不能和style-loader公用，且只适合在production下使用
         new MiniCssExtractPlugin({
             filename: devMode? '[name].css': './css/[name].[hash].css',
@@ -42,6 +48,7 @@ const config = merge(common, {
 
         //  压缩css
         new OptimizeCSSAssetsPlugin(),
+
         new HtmlWebpackPlugin({
             template: './index.html',
             filename: 'index.html',
@@ -56,32 +63,47 @@ const config = merge(common, {
                 // 尽可能删除属性周围的引号
                 removeAttributeQuotes: true
             }
-        })
+        }),
+
+
+        //  该功能和splitChunks打包的库文件重复了，暂时不用
+  //告诉 Webpack 使用了哪些动态链接库
+    // new webpack.DllReferencePlugin({
+    //   // 描述 vendor 动态链接库的文件内容
+    //   manifest: require('./public/vendor/vendor.manifest.json'),
+    //   context: __dirname,
+    //   scope: 'xyz',
+    // }),
+    // // 该插件将把给定的 JS 或 CSS 文件添加到 webpack 配置的文件中，并将其放入资源列表 html webpack插件注入到生成的 html 中。
+    // new AddAssetHtmlPlugin([
+    //     {
+    //         // 要添加到编译中的文件的绝对路径，以及生成的HTML文件。支持 globby 字符串
+    //         filepath: require.resolve(path.resolve(__dirname, 'public/vendor/vendor.dll.js')),
+    //         // 文件输出目录
+    //         outputPath: 'vendor',
+    //         // 脚本或链接标记的公共路径
+    //         publicPath: 'vendor'
+    //     }
+    // ]),
     ],
     optimization: {
         splitChunks: {
-            chunks: 'all',   // initial、async和all
-            minSize: 30000,   // 形成一个新代码块最小的体积
-            maxAsyncRequests: 5,   // 按需加载时候最大的并行请求数
-            maxInitialRequests: 3,   // 最大初始化请求数
-            automaticNameDelimiter: '~',   // 打包分割符
-            name: true,
+          chunks: 'async', 
+          minSize: 30000,
+          maxSize: 0,
+          minChunks: 1,
+          maxAsyncRequests: 5,
+          maxInitialRequests: 3,
+          automaticNameDelimiter: '~',
+          name: true,
             cacheGroups: {
-              reactBase: { // 项目基本框架等
-                chunks: 'all',
-                test: (module) => {
-                    return /react|redux|prop-types/.test(module.context);
-                },
-                priority: 100,
-                name: 'vendors',
-              },
-              common: {
+              vendors: {
+                //符合条件的放入当前缓存组
                 test: /[\\/]node_modules[\\/]/,
-                name: 'common',
-                chunks: 'initial',
-                priority: 2,
-                minChunks: 2,
-              },
+                name: "vendors",
+                chunks: "all"
+            },
+
               styles: {
                 name: 'styles',
                 test: /\.css$/,
@@ -90,11 +112,12 @@ const config = merge(common, {
               }
             }
           },
+        
           minimizer: [
             new UglifyJsPlugin({
-              parallel: os.cpus().length - 1,  // 使用多进程并行运行来提高构建速度
+              parallel: os.cpus().length,
               cache:true,
-              sourceMap:true,  
+              sourceMap:true,
               uglifyOptions: {
                 compress: {
                     // 在UglifyJs删除没有用到的代码时不输出警告
@@ -113,10 +136,12 @@ const config = merge(common, {
                     comments: false,
                 }
               }
-            })
+            }),
+         
           ],
     }
 })
 
 
-module.exports = smp.wrap(config)
+// module.exports = smp.wrap(config)
+module.exports = config
